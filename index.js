@@ -7,8 +7,6 @@ var jwt = require('jsonwebtoken');
 const JsonDB = require('node-json-db');
 const crypto = require("crypto");
 
-const debug = require('debug')('responsive-photo-gallery:server');
-
 class jwtUserAuth {
 
   constructor(dbPath) {
