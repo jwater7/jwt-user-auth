@@ -94,7 +94,7 @@ class jwtUserAuth {
   }
 
   login(username, password, options) {
-    if (this.users[username].password == password) {
+    if (this.users[username] && this.users[username].password == password) {
       //console.log("login: " + username);
       return jwt.sign({
         'user': username,
