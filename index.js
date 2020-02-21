@@ -100,7 +100,7 @@ class jwtUserAuth {
         'user': username,
         'admin': this.users[username].admin
       }, this.privateKey, {
-        expiresIn: 86400 // default expires in 24 hours
+        expiresIn: 60*60*24, // default expires in 24 hours
         ...options,
       });
     }
