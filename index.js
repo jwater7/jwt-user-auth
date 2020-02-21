@@ -36,7 +36,7 @@ class jwtUserAuth {
       });
       let privateKey = process.env.DEFAULT_PRIVATE_KEY || crypto.randomBytes(3*4).toString('base64');
       // TODO need to keep safe
-      this.db.push('/privateKey', this.privateKey);
+      this.db.push('/privateKey', privateKey);
     }
 
     this.privateKey = crypto.randomBytes(3*4).toString('base64');
@@ -46,7 +46,7 @@ class jwtUserAuth {
     }
     // Override any generated or passed in keys if there's one in the DB
     try {
-      dbPrivateKey = this.db.getData('/privateKey');
+      const dbPrivateKey = this.db.getData('/privateKey');
       // if no exception so far then we use it here
       this.privateKey = dbPrivateKey;
     } catch(e) {}
