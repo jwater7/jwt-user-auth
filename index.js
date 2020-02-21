@@ -31,7 +31,7 @@ class jwtUserAuth {
         'admin': {
           password,
           'hashed': false,
-          'admin': true,
+          'roles': ['admin'],
         }
       });
       let privateKey = process.env.DEFAULT_PRIVATE_KEY || crypto.randomBytes(3*4).toString('base64');
@@ -98,7 +98,7 @@ class jwtUserAuth {
       //console.log("login: " + username);
       return jwt.sign({
         'user': username,
-        'admin': this.users[username].admin
+        'roles': this.users[username].roles,
       }, this.privateKey, {
         expiresIn: 60*60*24, // default expires in 24 hours
         ...options,
