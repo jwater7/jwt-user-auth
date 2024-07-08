@@ -4,55 +4,58 @@
 'use strict'
 
 var jwt = require('jsonwebtoken');
-const JsonDB = require('node-json-db');
+const { JsonDB, Config } = require('node-json-db');
 const crypto = require("crypto");
 
 class jwtUserAuth {
 
   constructor(dbPath) {
-
     this.dbPath = dbPath;
+    this.db = null;
+  }
+
+  async init() {
     // Save after each push = true, save in human readable format = true
-    this.db = new JsonDB(dbPath + '/config.json', true, true);
+    this.db = new JsonDB(new Config(this.dbPath + '/config.json', true, true));
 
     // Check DB Version
     try {
-      let ver = this.db.getData('/dbVersion');
+      let ver = await this.db.getData('/dbVersion');
       if (ver !== '0') {
         throw (new Error('version mismatch'))
       }
-    } catch(e) {
+    } catch (e) {
       //this.db.delete('/');
       // Initialize Database
-      this.db.push('/dbVersion', '0');
+      await this.db.push('/dbVersion', '0');
       // TODO need to hash to keep safe
-      let password = process.env.DEFAULT_PASSWORD || crypto.randomBytes(3*4).toString('base64');
-      this.db.push('/users', {
+      let password = process.env.DEFAULT_PASSWORD || crypto.randomBytes(3 * 4).toString('base64');
+      await this.db.push('/users', {
         'admin': {
           password,
           'hashed': false,
           'roles': ['admin'],
         }
       });
-      let privateKey = process.env.DEFAULT_PRIVATE_KEY || crypto.randomBytes(3*4).toString('base64');
+      let privateKey = process.env.DEFAULT_PRIVATE_KEY || crypto.randomBytes(3 * 4).toString('base64');
       // TODO need to keep safe
-      this.db.push('/privateKey', privateKey);
+      await this.db.push('/privateKey', privateKey);
     }
 
-    this.privateKey = crypto.randomBytes(3*4).toString('base64');
+    this.privateKey = crypto.randomBytes(3 * 4).toString('base64');
     // If we passed in the private key then use it instead
     if (process.env.PRIVATE_KEY) {
       this.privateKey = process.env.PRIVATE_KEY;
     }
     // Override any generated or passed in keys if there's one in the DB
     try {
-      const dbPrivateKey = this.db.getData('/privateKey');
+      const dbPrivateKey = await this.db.getData('/privateKey');
       // if no exception so far then we use it here
       this.privateKey = dbPrivateKey;
-    } catch(e) {}
+    } catch (e) { }
 
     this.users = [];
-    try { this.users = this.db.getData('/users'); } catch(e) {}
+    try { this.users = await this.db.getData('/users'); } catch (e) { }
 
     this.keyBlackList = {};
 
@@ -71,7 +74,7 @@ class jwtUserAuth {
     for (var key in this.keyBlackList) {
       if ('expiretime' in this.keyBlackList[key]) {
         // Delete if its expired anyway
-        if (this.keyBlackList[key].expiretime <= Math.round(Date.now()/1000)) {
+        if (this.keyBlackList[key].expiretime <= Math.round(Date.now() / 1000)) {
           delete this.keyBlackList[key];
         }
       }
@@ -85,7 +88,7 @@ class jwtUserAuth {
 
   logout(token) {
     if (token) {
-      jwt.verify(token, this.privateKey, function(err, decoded) {
+      jwt.verify(token, this.privateKey, function (err, decoded) {
         if (!err) {
           this.addToBlackList(token, decoded.exp);
         }
@@ -100,7 +103,7 @@ class jwtUserAuth {
         'user': username,
         'roles': this.users[username].roles,
       }, this.privateKey, {
-        expiresIn: 60*60*24, // default expires in 24 hours
+        expiresIn: 60 * 60 * 24, // default expires in 24 hours
         ...options,
       });
     }
@@ -110,7 +113,7 @@ class jwtUserAuth {
   authenticate(req, res, next) {
     var token = req.body.token || req.query.token || req.headers['x-api-key'];
     if (token) {
-      jwt.verify(token, this.privateKey, function(err, decoded) {
+      jwt.verify(token, this.privateKey, function (err, decoded) {
         if (!err) {
           if (this.checkBlackList(token)) {
             req.decoded = decoded;
@@ -122,11 +125,11 @@ class jwtUserAuth {
   }
 
   required(req, res, next) {
-    if(req.decoded) {
+    if (req.decoded) {
       next();
       return;
     }
-    
+
     res.status(403).json({
       error: {
         code: 403,
